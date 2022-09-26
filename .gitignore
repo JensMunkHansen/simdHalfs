@@ -37,3 +37,10 @@ compile
 configure
 depcomp
 missing
+Makefile
+Makefile.in
+.deps/*
+config.*
+stamp-h1
+.deps
+src/main

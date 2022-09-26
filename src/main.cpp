@@ -33,7 +33,7 @@ int main( void ) {
 
   double start, stop;
   
-  size_t nIter = 1000;
+  size_t nIter = 10000;
   size_t nData = 65536;
 
 #ifdef _REFERENCE
@@ -86,7 +86,8 @@ int main( void ) {
   _mm_free(myfloatdata);
 
   stop = mytime() - start;
-  
+
+  printf("result: %f\n", result);
   printf("%d multiplications done in %g seconds\n\n", nIter*nData, stop);
   
   printf("Half-precision float multiplications (SSE)\n");

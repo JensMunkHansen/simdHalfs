@@ -129,8 +129,8 @@
 #endif
 
 #if defined(__GNUC__)
-# define _mm_castps_si128(x) (__m128i) x
-# define _mm_castsi128_ps(x) (__m128) x
+//# define _mm_castps_si128(x) (__m128i) x
+//# define _mm_castsi128_ps(x) (__m128) x
 #endif
 
 #if defined(__GNUC__)
@@ -690,7 +690,8 @@ static SPS_INLINE __m128 _mm_neg_ps(__m128 x)
 {
 
   // Is compiled into writing to a single xmms register
-  const ALIGN16_BEGIN int clear_signmask[4] ALIGN16_END = {0x80000000L,0x80000000L,0x80000000L,0x80000000L};
+  const ALIGN16_BEGIN int clear_signmask[4] ALIGN16_END =
+      {(int) 0x80000000L, (int) 0x80000000L, (int) 0x80000000L, (int)0x80000000L};
 
   return _mm_xor_ps(x,_mm_load_ps((float *) clear_signmask));
 /*   
