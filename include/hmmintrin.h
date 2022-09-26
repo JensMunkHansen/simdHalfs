@@ -135,6 +135,8 @@
 
 #if defined(__GNUC__)
 # define GCC_SPLIT_BLOCK(str)  __asm__( "//\n\t// " str "\n\t//\n" );
+#elif defined(_WIN64)
+# define GCC_SPLIT_BLOCK(str)
 #else
 # define GCC_SPLIT_BLOCK(str) __asm { }
 #endif
@@ -726,7 +728,7 @@ __m128 half_to_floats(const __m128 &input)  {
 
   __m128 retval;
   
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(_WIN64)
   __asm {
     mov eax, input
     movups xmm0, [eax]
@@ -772,7 +774,8 @@ __m128 half_to_floats(const __m128 &input)  {
         [half_bias_offset] "m" (*half_bias_offset)
       : "%xmm0", "%xmm1", "%xmm2"
     );
-
+#else
+#error("Not supported")
 #endif
 
   return retval;
