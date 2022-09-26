@@ -6,6 +6,10 @@
  #include <config.h>
 #endif
 
+#ifdef _WIN32
+# define HAVE_STDINT_H 1
+#endif
+
 #ifdef HAVE_STDINT_H
  #include <stdint.h>
 #else
