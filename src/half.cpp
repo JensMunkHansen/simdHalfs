@@ -6,27 +6,27 @@
  *
  *  MODIFICATIONS:
  *     Jens Munk Hansen <jens.munk.hansen@gmail.com>
- *     - Added support for missing C99 compliance 
- *     - Added support for CLZ intrinsics for MSVC 
+ *     - Added support for missing C99 compliance
+ *     - Added support for CLZ intrinsics for MSVC
  */
 
 // Branch-free implementation of half-precision (16 bit) floating point
-// Copyright 2006 Mike Acton 
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a 
+// Copyright 2006 Mike Acton
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-// and/or sell copies of the Software, and to permit persons to whom the 
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included 
+//
+// The above copyright notice and this permission notice shall be included
 // in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE
@@ -49,13 +49,13 @@
 
  	unsigned char _BitScanForward(unsigned long * Index, unsigned long Mask);
  	unsigned char _BitScanReverse(unsigned long * Index, unsigned long Mask);
-	
+
 # pragma intrinsic(_BitScanForward,_BitScanReverse)
  	__forceinline static int
  	__BitScanForward32(unsigned int val)
  	{
  	   unsigned long idx;
- 	
+
  	   _BitScanForward(&idx, (unsigned long)val);
  	   return (int)idx;
  	}
@@ -64,7 +64,7 @@
  	__BitScanReverse32(unsigned int val)
  	{
  	   unsigned long idx;
- 	
+
 	   _BitScanReverse(&idx, (unsigned long)val);
  	   return (int)(31-idx);
  	}
@@ -104,7 +104,7 @@ static inline uint32_t _uint32_not( uint32_t a )
 // Negate
 static inline uint32_t _uint32_neg( uint32_t a )
 {
-  return (-a);
+  return (uint32_t) (-(int32_t) a);
 }
 
 // Extend sign
@@ -306,7 +306,7 @@ static inline uint32_t _uint32_cntlz( uint32_t x )
   /* On PowerPC, this will map to insn: cntlzw   */
   /* On Pentium, this will map to insn: clz      */
   /* On ARM, this will map to insn: clz          */
-  
+
   uint32_t is_x_nez_msb = _uint32_neg( x );
   uint32_t nlz          = __builtin_clz( x );
   uint32_t result       = _uint32_sels( is_x_nez_msb, nlz, 0x00000020L );
@@ -320,7 +320,7 @@ static inline uint32_t _uint32_cntlz( uint32_t x )
    uint32_t result       = _uint32_sels( is_x_nez_msb, nlz, 0x00000020L );
    return (result);
   #else
-  
+
   const uint32_t x0  = _uint32_srl(  x,  1 );
   const uint32_t x1  = _uint32_or(   x,  x0 );
   const uint32_t x2  = _uint32_srl(  x1, 2 );
@@ -349,7 +349,7 @@ static inline uint32_t _uint32_cntlz( uint32_t x )
   const uint32_t x19 = _uint32_and(  x18, 0x0000003FL );
   return ( x19 );
   #endif
-  
+
 #endif
 }
 
@@ -364,17 +364,17 @@ static inline uint16_t _uint16_cntlz( uint16_t x )
 /*
   uint32_t x32   = _uint32_sll( x, 16 );
   uint16_t nlz   = (uint16_t)__builtin_clz( x32 );
-  return (nlz);  
+  return (nlz);
 */
-  
+
 #else
-  
+
   #if defined(HAVE_BITSCAN_CLZ32)
    uint16_t nlz32 = (uint16_t)_uint32_cntlz( (uint32_t)x );
    uint32_t nlz   = _uint32_sub( nlz32, 16 );
    return (nlz);
   #else
-  
+
   const uint16_t x0  = _uint16_srl(  x,  1 );
   const uint16_t x1  = _uint16_or(   x,  x0 );
   const uint16_t x2  = _uint16_srl(  x1, 2 );
@@ -400,11 +400,11 @@ static inline uint16_t _uint16_cntlz( uint16_t x )
 
 // FLOAT: S  E......E M.........M ...........M
 //        31        23          13           0
-//                  |           |            
+//                  |           |
 //                  |           \ f_m_round_bit
 //                  |
 //                  \ f_m_hidden_bit
-   
+
 uint16_t
 half_from_float( uint32_t f )
 {
@@ -419,21 +419,21 @@ half_from_float( uint32_t f )
   const uint32_t f_e_pos                    = _uint32_li( 0x00000017L );
   const uint32_t h_e_pos                    = _uint32_li( 0x0000000AL );
   const uint32_t h_e_mask                   = _uint32_li( 0x00007C00L ); // 0 1...10........0
-                                                                        // 15     9        
+                                                                        // 15     9
   const uint32_t h_snan_mask                = _uint32_li( 0x00007E00L ); // 0 1....10.......0
-                                                                        // 15      8   
+                                                                        // 15      8
   const uint32_t h_e_mask_value             = _uint32_li( 0x0000001FL );
   const uint32_t f_h_s_pos_offset           = _uint32_li( 0x00000010L );
   const uint32_t f_h_bias_offset            = _uint32_li( 0x00000070L );
   const uint32_t f_h_m_pos_offset           = _uint32_li( 0x0000000DL );
   const uint32_t h_nan_min                  = _uint32_li( 0x00007C01L );
   const uint32_t f_h_e_biased_flag          = _uint32_li( 0x0000008FL );
-  
+
   // Extract sign (s)
-  const uint32_t f_s                        = _uint32_and( f,               f_s_mask         ); 
+  const uint32_t f_s                        = _uint32_and( f,               f_s_mask         );
   const uint16_t h_s                        = _uint32_srl( f_s,             f_h_s_pos_offset );
-  
-  // Extract exponent (e) and subtract bias of 112: s * 2 ^ (e-112) * m 
+
+  // Extract exponent (e) and subtract bias of 112: s * 2 ^ (e-112) * m
   const uint32_t f_e                        = _uint32_and( f,               f_e_mask         );
   const uint16_t f_e_amount                 = _uint32_srl( f_e,             f_e_pos          );
   const uint32_t f_e_half_bias              = _uint32_sub( f_e_amount,      f_h_bias_offset  );
@@ -448,37 +448,37 @@ half_from_float( uint32_t f )
 
   // Is float NaN?
   const uint32_t f_snan                     = _uint32_and( f,               f_snan_mask      );
-  
+
   // (1-exp)
   const uint32_t f_m_denorm_sa              = _uint32_sub( one,             f_e_half_bias    );
-  
+
   // Is rounded mantissa (including hidden bit) too big? If so, divide by 2^(1-exp) (Why 1-exp?)
   const uint32_t f_m_with_hidden            = _uint32_or(  f_m_rounded,     f_m_hidden_bit   );
   const uint32_t f_m_denorm                 = _uint32_srl( f_m_with_hidden, f_m_denorm_sa    );
-  // Rigth shift mantissa 13 bit: single(23) -> half(10)  
+  // Rigth shift mantissa 13 bit: single(23) -> half(10)
   const uint32_t h_m_denorm                 = _uint32_srl( f_m_denorm,      f_h_m_pos_offset );
-  
+
   // Is rounded mantissa causing float overflow?
   const uint32_t f_m_rounded_overflow       = _uint32_and( f_m_rounded,     f_m_hidden_bit   );
   // Is it a NaN value?
   const uint32_t h_em_nan                   = _uint32_or(  h_e_mask,        m_nan            );
- 
+
   ////////////////////////////////////////////////////////////////////////////////////////////
   // Normal results:
   ////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   // Increase exponent by one (in case) of overflow
   const uint32_t h_e_norm_overflow_offset   = _uint32_inc( f_e_half_bias );
-  
+
   const uint32_t h_e_norm_overflow          = _uint32_sll( h_e_norm_overflow_offset, h_e_pos          );
   // Left shift exponent 10 bits: S(1) E(5) M(10)
   const uint32_t h_e_norm                   = _uint32_sll( f_e_half_bias,            h_e_pos          );
   // Rigth shift mantissa 13 bits: single(23) -> half(10)
   const uint32_t h_m_norm                   = _uint32_srl( f_m_rounded,              f_h_m_pos_offset );
-  
+
   // Combine exponent and mantissa to obtain normal result
   const uint32_t h_em_norm                  = _uint32_or(  h_e_norm,                 h_m_norm         );
-  
+
   ////////////////////////////////////////////////////////////////////////////////////////////
   // Handle denormals
   ////////////////////////////////////////////////////////////////////////////////////////////
@@ -488,52 +488,52 @@ half_from_float( uint32_t f )
   const uint32_t is_h_denorm_msb            = _uint32_not( is_h_ndenorm_msb );
 
   // Exponent msb: 10001111 - f_e_half_bias
-  const uint32_t is_f_e_flagged_msb         = _uint32_sub( f_h_e_biased_flag, f_e_half_bias );  
-  // Zero mantissa 
+  const uint32_t is_f_e_flagged_msb         = _uint32_sub( f_h_e_biased_flag, f_e_half_bias );
+  // Zero mantissa
   const uint32_t is_f_m_eqz_msb             = _uint32_dec( f_m   );
   const uint32_t is_h_nan_eqz_msb           = _uint32_dec( m_nan );
-  
-  // Zero float mantissa + exponent msb : Float inf  
+
+  // Zero float mantissa + exponent msb : Float inf
   const uint32_t is_f_inf_msb               = _uint32_and( is_f_e_flagged_msb, is_f_m_eqz_msb   );
-  
+
   // Zero half mantissa + exponent msb : Underflow -> NaN min (negative infinity)
   const uint32_t is_f_nan_underflow_msb     = _uint32_and( is_f_e_flagged_msb, is_h_nan_eqz_msb );
-  
+
   // Exponent larger than 31 (5 bits) : Exponent overflow
   const uint32_t is_e_overflow_msb          = _uint32_sub( h_e_mask_value,     f_e_half_bias    );
-  
+
   // Float inf or exponent overflow -> NaN Infinity (positive infinity)
   const uint32_t is_h_inf_msb               = _uint32_or(  is_e_overflow_msb,  is_f_inf_msb     );
-  
+
   // Float NaN -> NaN
   const uint32_t is_f_nsnan_msb             = _uint32_sub( f_snan,             f_snan_mask      );
   const uint32_t is_f_snan_msb              = _uint32_not( is_f_nsnan_msb );
-  
+
   // Round overflow -> Overflow
   const uint32_t is_m_norm_overflow_msb     = _uint32_neg( f_m_rounded_overflow );
-  
+
   ////////////////////////////////////////////////////////////////////////////////////////////
   // Select appropriate output
   ////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   // Overflow -> normal (no exception is thrown)
   const uint32_t h_em_overflow_result       = _uint32_sels( is_m_norm_overflow_msb, h_e_norm_overflow, h_em_norm                 );
-  
+
   // Max exponent non-zero mantissa -> NaN result
-  const uint32_t h_em_nan_result            = _uint32_sels( is_f_e_flagged_msb,     h_em_nan,          h_em_overflow_result      );  
-  
+  const uint32_t h_em_nan_result            = _uint32_sels( is_f_e_flagged_msb,     h_em_nan,          h_em_overflow_result      );
+
   // Negative infinity -> 0x7C01
   const uint32_t h_em_nan_underflow_result  = _uint32_sels( is_f_nan_underflow_msb, h_nan_min,         h_em_nan_result           );
-  
+
   // Positive infinity -> 0x7C00
   const uint32_t h_em_inf_result            = _uint32_sels( is_h_inf_msb,           h_e_mask,          h_em_nan_underflow_result );
-  
+
   // Denormals
   const uint32_t h_em_denorm_result         = _uint32_sels( is_h_denorm_msb,        h_m_denorm,        h_em_inf_result           );
-  
+
   // NaN -> 0x7E00
   const uint32_t h_em_snan_result           = _uint32_sels( is_f_snan_msb,          h_snan_mask,       h_em_denorm_result        );
-  
+
   // Put sign back
   const uint32_t h_result                   = _uint32_or( h_s, h_em_snan_result );
 
@@ -541,7 +541,7 @@ half_from_float( uint32_t f )
 }
 
 
-uint32_t 
+uint32_t
 half_to_float( uint16_t h )
 {
   const uint32_t h_e_mask              = _uint32_li( 0x00007C00L );
@@ -578,14 +578,14 @@ half_to_float( uint16_t h )
   const uint32_t is_zero_msb           = _uint32_andc( is_e_eqz_msb,       is_m_nez_msb );
   const uint32_t is_inf_msb            = _uint32_andc( is_e_flagged_msb,   is_m_nez_msb );
   const uint32_t is_denorm_msb         = _uint32_and(  is_m_nez_msb,       is_e_eqz_msb );
-  const uint32_t is_nan_msb            = _uint32_and(  is_e_flagged_msb,   is_m_nez_msb ); 
+  const uint32_t is_nan_msb            = _uint32_and(  is_e_flagged_msb,   is_m_nez_msb );
   const uint32_t is_zero               = _uint32_ext(  is_zero_msb );
   const uint32_t f_zero_result         = _uint32_andc( f_em, is_zero );
   const uint32_t f_denorm_result       = _uint32_sels( is_denorm_msb, f_em_denorm, f_zero_result );
   const uint32_t f_inf_result          = _uint32_sels( is_inf_msb,    f_e_mask,    f_denorm_result );
   const uint32_t f_nan_result          = _uint32_sels( is_nan_msb,    f_em_nan,    f_inf_result    );
   const uint32_t f_result              = _uint32_or( f_s, f_nan_result );
- 
+
   return (f_result);
 }
 
@@ -690,7 +690,7 @@ half_add( uint16_t x, uint16_t y )
   const uint16_t c_s_diff                  = _uint16_sels( is_c_m_ab_pos_msb, a_s,         b_s         );
   const uint16_t c_s                       = _uint16_sels( is_diff_sign_msb,  c_s_diff,    a_s         );
   const uint16_t c_m_smag_diff_nlz         = _uint16_cntlz( c_m_smag_diff );
-  
+
   const uint16_t diff_norm_sa              = _uint16_sub( c_m_smag_diff_nlz, one );
   const uint16_t is_diff_denorm_msb        = _uint16_sub( a_e_biased, diff_norm_sa );
   const uint16_t is_diff_denorm            = _uint16_ext( is_diff_denorm_msb );
@@ -713,7 +713,7 @@ half_add( uint16_t x, uint16_t y )
   const uint16_t c_e_hidden_offset         = _uint16_andsrl( c_m_added, h_m_grs_carry, h_m_grs_carry_pos );
   const uint16_t c_m_sub_hidden            = _uint16_srl( c_m_added, one );
   const uint16_t c_m_no_hidden             = _uint16_sels( is_c_m_carry_msb, c_m_sub_hidden, c_m_added );
-  
+
   const uint16_t c_e_no_hidden             = _uint16_add(  c_e_added,         c_e_hidden_offset  );
   const uint16_t c_m_no_hidden_msb         = _uint16_and(  c_m_no_hidden,     h_m_msb_mask       );
   const uint16_t undenorm_m_msb_odd        = _uint16_srl(  c_m_no_hidden_msb, h_m_msb_sa         );
@@ -737,7 +737,7 @@ half_add( uint16_t x, uint16_t y )
 // --------
 //
 //  May have 0 or 1 ulp difference from the following result:
-//  (Round to nearest) 
+//  (Round to nearest)
 //  NOTE: Rounding mode differs between conversion and multiply
 //
 //     union FLOAT_32
@@ -774,16 +774,16 @@ half_mul( uint16_t x, uint16_t y )
   const uint32_t x_e                                = _uint32_and(  x,   h_e_mask );
   const uint32_t x_e_eqz_msb                        = _uint32_dec(  x_e );
   const uint32_t a                                  = _uint32_sels( x_e_eqz_msb, y, x );
-  
+
   const uint32_t b                                  = _uint32_sels( x_e_eqz_msb, x, y );
-  
+
   const uint32_t a_e                                = _uint32_and(  a,   h_e_mask );
   const uint32_t b_e                                = _uint32_and(  b,   h_e_mask );
   const uint32_t a_m                                = _uint32_and(  a,   h_m_mask );
   const uint32_t b_m                                = _uint32_and(  b,   h_m_mask );
   const uint32_t a_e_amount                         = _uint32_srl(  a_e,                 h_e_pos                 );
   const uint32_t b_e_amount                         = _uint32_srl(  b_e,                 h_e_pos                 );
-  
+
   const uint32_t a_m_with_hidden                    = _uint32_or(   a_m,                 h_m_hidden              );
   const uint32_t b_m_with_hidden                    = _uint32_or(   b_m,                 h_m_hidden              );
   const uint32_t c_m_normal                         = _uint32_mul(  a_m_with_hidden,     b_m_with_hidden         );
@@ -801,30 +801,30 @@ half_mul( uint16_t x, uint16_t y )
   const uint32_t c_e_underflow_sa                   = _uint32_sll(  c_e_underflow_half_sa,     one );
   const uint32_t c_m_underflow                      = _uint32_srl(  c_m_normal,                c_e_underflow_sa );
   const uint32_t c_e_underflow_added                = _uint32_andc( c_e_amount_unbiased,       is_c_e_unbiased_underflow );
-  
+
   const uint32_t c_m_underflow_added                = _uint32_selb( is_c_e_unbiased_underflow, c_m_underflow, c_m_normal );
-  
+
   const uint32_t is_mul_overflow_test               = _uint32_and(  c_e_underflow_added, m_round_overflow_bit );
   const uint32_t is_mul_overflow_msb                = _uint32_neg(  is_mul_overflow_test );
-  
+
   const uint32_t c_e_norm_radix_corrected           = _uint32_inc(  c_e_underflow_added );
-  
+
   const uint32_t c_m_norm_radix_corrected           = _uint32_srl(  c_m_underflow_added, one );
   const uint32_t c_m_norm_hidden_bit                = _uint32_and(  c_m_norm_radix_corrected,  m_hidden_bit );
   const uint32_t is_c_m_norm_no_hidden_msb          = _uint32_dec(  c_m_norm_hidden_bit );
   const uint32_t c_m_norm_lo                        = _uint32_srl(  c_m_norm_radix_corrected, h_m_bit_half_count );
   const uint32_t c_m_norm_lo_nlz                    = _uint16_cntlz( c_m_norm_lo );
-  
+
   const uint32_t is_c_m_hidden_nunderflow_msb       = _uint32_sub(  c_m_norm_lo_nlz, c_e_norm_radix_corrected );
   const uint32_t is_c_m_hidden_underflow_msb        = _uint32_not(  is_c_m_hidden_nunderflow_msb );
-  
+
   const uint32_t is_c_m_hidden_underflow            = _uint32_ext(  is_c_m_hidden_underflow_msb  );
   const uint32_t c_m_hidden_underflow_normalized_sa = _uint32_srl(  c_m_norm_lo_nlz, one );
   const uint32_t c_m_hidden_underflow_normalized    = _uint32_sll(  c_m_norm_radix_corrected, c_m_hidden_underflow_normalized_sa );
   const uint32_t c_m_hidden_normalized              = _uint32_sll(  c_m_norm_radix_corrected, c_m_norm_lo_nlz );
   const uint32_t c_e_hidden_normalized              = _uint32_sub(  c_e_norm_radix_corrected, c_m_norm_lo_nlz );
   const uint32_t c_e_hidden                         = _uint32_andc( c_e_hidden_normalized,    is_c_m_hidden_underflow );
-  
+
   const uint32_t c_m_hidden                         = _uint32_sels( is_c_m_hidden_underflow_msb, c_m_hidden_underflow_normalized, c_m_hidden_normalized );
   const uint32_t c_m_normalized                     = _uint32_sels( is_c_m_norm_no_hidden_msb, c_m_hidden, c_m_norm_radix_corrected );
   const uint32_t c_e_normalized                     = _uint32_sels( is_c_m_norm_no_hidden_msb, c_e_hidden, c_e_norm_radix_corrected );
